@@ -28,6 +28,34 @@ mongoose.connect(`mongodb+srv://${dbUser}:${dbPassword}@cluster0.bo8jwjr.mongodb
     console.log(err);
 })
 
+// Função para Login com autenticação
+
+const checkToken = async (req, res, next) => {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split('')[1]
+    
+    if(!token){
+        return res.status(401).json({
+            message: 'Access denied. No token provided'
+        })
+    }
+}
+
+// Public Route
+app.get('/user/:id', checkToken, async (req, res) => {
+    const id = req.params.id;
+
+    // Check if user exists
+    const user = await User.findById(id, '-password');
+    if (!user) {
+        return res.status(404).json({
+            message: 'User not found'
+        })
+    }
+
+    res.status(200).json({ user })
+})
+
 // Registro de Usuário
 
 app.post('/auth/register', async (req, res) => {
@@ -89,18 +117,18 @@ app.post('/auth/register', async (req, res) => {
     }
 })
 
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body
 
     // Validação de campos
 
-    if(!email) {
+    if (!email) {
         return res.status(442).json({
             message: 'Email is required'
         })
     }
 
-    if(!password) {
+    if (!password) {
         return res.status(442).json({
             message: 'Password is required'
         })
@@ -108,5 +136,32 @@ app.post('/auth/login', (req, res) => {
 
     // Check if user exists
     const userExists = await User.findOne({ email: email })
-    
+
+    if (!userExists) {
+        return res.status(404).json({
+            message: 'User not found'
+        })
+    }
+    // Check if password is correct
+    const isPasswordCorrect = await bcrypt.compare(password, userExists.password)
+
+    if (!isPasswordCorrect) {
+        return res.status(442).json({
+            message: 'Password is incorrect'
+        })
+    }
+
+    try {
+        const secret = process.env.SECRET;
+
+        const token = jwt.sign({
+            id: userExists._id
+        }, secret)
+        res.status(200).json({ msg: "Logged in successfully", token: token })
+    } catch (err) {
+        console.log(err);
+    }
+
+
+
 })
