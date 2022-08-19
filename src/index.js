@@ -1,42 +1,39 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const router = require('./router')
+const dbmongo = require('./db/mongo')
+dbmongo()
+const port = 3000
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const port = 3000;
+app.use(router)
 
-// Credencials
-const dbUser = process.env.DB_USER;
-const dbPassword = process.env.DB_PASS;
+app.listen(port, () => console.log(`Server is Running on port ${port}!`));
 
-// Rota Principal
-app.get('/', (req, res) => {
-    res.status(200).json({
-        message: `Server is Running on port ${port}`
-    })
-})
-// Conexão com o Banco de Dados
-mongoose.connect(`mongodb+srv://${dbUser}:${dbPassword}@cluster0.bo8jwjr.mongodb.net/?retryWrites=true&w=majority`).then(() => {
-    app.listen(port, () => console.log(`Server is Running on port ${port}!`));
-    console.log('Connected to MongoDB');
-}).catch((err) => {
-    console.log(err);
-})
-
-// Função para Login com autenticação
+// Função para verificar se o token é válido
 
 const checkToken = async (req, res, next) => {
     const authHeader = req.headers['authorization']
-    const token = authHeader && authHeader.split('')[1]
-    
-    if(!token){
+    const token = authHeader && authHeader.split(' ')[1]
+
+    if (!token) {
         return res.status(401).json({
             message: 'Access denied. No token provided'
+        })
+    }
+
+    try {
+        const secret = process.env.SECRET
+        jwt.verify(token, secret)
+        next()
+    } catch (err) {
+        return res.status(400).json({
+            message: 'Error while verifying token'
         })
     }
 }
@@ -57,7 +54,7 @@ app.get('/user/:id', checkToken, async (req, res) => {
 })
 
 // Registro de Usuário
-
+/*
 app.post('/auth/register', async (req, res) => {
     const { name, email, password, confirmpassword } = req.body
 
@@ -116,7 +113,7 @@ app.post('/auth/register', async (req, res) => {
         console.log(err);
     }
 })
-
+*/
 app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body
 
