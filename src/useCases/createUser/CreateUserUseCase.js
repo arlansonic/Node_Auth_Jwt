@@ -4,7 +4,6 @@ const bcrypt = require('bcrypt');
 class CreateUserUseCase {
     async execute({ name, email, password, confirmpassword }) {
         try {
-
             const salt = await bcrypt.genSalt(12)
             const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -12,8 +11,8 @@ class CreateUserUseCase {
             const user = new User({
                 name: name,
                 email: email,
-                password: hashedPassword
-            })           
+                password: hashedPassword,
+            })
             // Check if user exists
             const userExists = await User.findOne({ email: email })
 
@@ -22,9 +21,8 @@ class CreateUserUseCase {
             }
             else {
                 console.log('Usuário Cadastrado com Sucesso')
-                await user.save()
+                // await user.save()
             }
-
             return name, email, password, confirmpassword, userExists, user
 
         } catch (err) {
